@@ -166,11 +166,44 @@ export const GlobalSubscriptionModal: React.FC = () => {
     setIsLoadingResponse(true);
     try {
       const response = await apiClient.sendChatQuery(question);
+      console.log('Full API response:', response); // Debug log
       
       if (response.success && response.data) {
-        setQuestionResponse(response.data);
+        // Extract the nested n8n response
+        const n8nResponse = response.data;
+        console.log('n8n response:', n8nResponse); // Debug log
+        
+        // Handle all three n8n response statuses
+        if (n8nResponse.status === 'success') {
+          const processedResponse = {
+            answer: n8nResponse.data?.ai_answer || '',
+            articles: n8nResponse.data?.recommended_articles || [],
+            status: 'success' as const
+          };
+          setQuestionResponse(processedResponse);
+        } else if (n8nResponse.status === 'not_relevant') {
+          const processedResponse = {
+            answer: n8nResponse.data?.ai_answer || '',
+            articles: [],
+            status: 'not_relevant' as const
+          };
+          setQuestionResponse(processedResponse);
+        } else if (n8nResponse.status === 'no_results') {
+          const processedResponse = {
+            answer: n8nResponse.data?.ai_answer || '',
+            articles: [],
+            status: 'no_results' as const
+          };
+          setQuestionResponse(processedResponse);
+        } else {
+          // Handle unexpected status
+          throw new Error(`Unexpected n8n response status: ${n8nResponse.status}`);
+        }
+        
+        console.log('Processed response:', questionResponse); // Debug log
         setModalState('question-response');
       } else {
+        // Handle API client error
         toast({
           title: "Error",
           description: "Failed to get AI response. Please try again.",
