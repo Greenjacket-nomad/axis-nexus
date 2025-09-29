@@ -14,11 +14,30 @@ export default {
     },
     extend: {
       colors: {
+        // Core Design System
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        
+        // Axis Mundi Dark Theme Colors
+        "primary-dark": "hsl(var(--primary-dark))",
+        "card-dark": "hsl(var(--card-dark))",
+        "secondary-dark": "hsl(var(--secondary-dark))",
+        
+        // Green Accent System
+        "accent-primary": "hsl(var(--accent-primary))",
+        "accent-hover": "hsl(var(--accent-hover))",
+        "accent-light": "hsl(var(--accent-light))",
+        "accent-glow": "hsl(var(--accent-glow))",
+        
+        // Text Colors
+        "text-white": "hsl(var(--text-white))",
+        "text-muted": "hsl(var(--text-muted))",
+        "text-body": "hsl(var(--text-body))",
+        
+        // Standard shadcn tokens
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -46,16 +65,6 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
-        },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
         },
       },
       borderRadius: {
