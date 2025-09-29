@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Clock, ExternalLink, User, Tag } from 'lucide-react';
 import { ArticleRecommendation as ArticleType } from '@/lib/api';
 
@@ -20,12 +19,12 @@ export const ArticleRecommendation: React.FC<ArticleRecommendationProps> = ({ ar
     <div className="card-tech group">
       <div className="flex flex-col space-y-3">
         <div className="flex items-start justify-between">
-          <Link 
-            to={article.article_url}
+          <a 
+            href={article.article_url}
             className="h3 text-text-white hover:text-accent-primary transition-colors group-hover:text-accent-primary line-clamp-2"
           >
             {article.title}
-          </Link>
+          </a>
           <ExternalLink className="w-4 h-4 text-text-muted flex-shrink-0 ml-2" />
         </div>
 
@@ -52,12 +51,12 @@ export const ArticleRecommendation: React.FC<ArticleRecommendationProps> = ({ ar
           <span className="small-text text-text-body">
             {formatDate(article.published_date)}
           </span>
-          <Link
-            to={article.article_url}
+          <a
+            href={article.article_url}
             className="text-accent-primary hover:text-accent-hover transition-colors small-text font-medium"
           >
             Read article →
-          </Link>
+          </a>
         </div>
       </div>
     </div>
