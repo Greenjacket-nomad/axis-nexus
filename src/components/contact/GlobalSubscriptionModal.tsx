@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,10 +7,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, X, Mail, MessageCircle, ExternalLink } from 'lucide-react';
+import { Check, Loader2, X, Mail, MessageCircle, ExternalLink, ArrowLeft, Calendar, Clock, Tag } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useSubscriptionModal } from '@/contexts/SubscriptionModalContext';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Article = Tables<'articles'>;
 
 export const GlobalSubscriptionModal: React.FC = () => {
   const { 
@@ -18,13 +23,17 @@ export const GlobalSubscriptionModal: React.FC = () => {
     modalState, 
     prefilledData, 
     articles,
+    currentArticle,
     closeModal, 
     setModalState, 
-    setArticles 
+    setArticles,
+    setCurrentArticle
   } = useSubscriptionModal();
   
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [fullArticle, setFullArticle] = useState<Article | null>(null);
+  const [articleLoading, setArticleLoading] = useState(false);
 
   const handleSubscribeYes = async () => {
     setIsLoading(true);
@@ -88,6 +97,58 @@ export const GlobalSubscriptionModal: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReadArticle = async (article: { id: number; title: string; summary: string; slug: string; }) => {
+    setCurrentArticle(article);
+    setModalState('reading-article');
+    setArticleLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('slug', article.slug.trim())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (!data && !error) {
+        // Try with trimmed slug comparison if exact match fails
+        const { data: trimmedData, error: trimmedError } = await supabase
+          .from('articles')
+          .select('*')
+          .eq('is_active', true)
+          .rpc('find_article_by_trimmed_slug', { input_slug: article.slug.trim() });
+        
+        if (trimmedData) {
+          setFullArticle(trimmedData);
+        } else {
+          throw new Error('Article not found');
+        }
+      } else if (error) {
+        throw error;
+      } else {
+        setFullArticle(data);
+      }
+    } catch (error) {
+      console.error('Failed to load article:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load article content.",
+        variant: "destructive",
+      });
+      // Fall back to previous state
+      setModalState(articles.length > 0 ? 'articles-only' : 'initial');
+    } finally {
+      setArticleLoading(false);
+    }
+  };
+
+  const handleBackFromArticle = () => {
+    setFullArticle(null);
+    setCurrentArticle(null);
+    // Return to the appropriate previous state
+    setModalState(modalState === 'reading-article' ? 'articles-only' : 'initial');
   };
 
   const renderInitialState = () => (
@@ -155,13 +216,23 @@ export const GlobalSubscriptionModal: React.FC = () => {
               <div key={article.id} className="bg-secondary-dark p-4 border border-border-color">
                 <h4 className="font-medium text-text-white mb-2">{article.title}</h4>
                 <p className="text-sm text-text-muted mb-3 line-clamp-2">{article.summary}</p>
-                <Button
-                  variant="link"
-                  className="text-accent-primary hover:text-accent-hover p-0 h-auto font-normal"
-                  onClick={() => window.open(`/blog/${article.slug.trim()}`, '_blank')}
-                >
-                  Read article <ExternalLink className="w-3 h-3 ml-1" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="link"
+                    className="text-accent-primary hover:text-accent-hover p-0 h-auto font-normal"
+                    onClick={() => handleReadArticle(article)}
+                  >
+                    Read article
+                  </Button>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-text-muted hover:text-accent-primary p-0 h-auto"
+                    onClick={() => window.open(`/blog/${article.slug.trim()}`, '_blank')}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -225,13 +296,23 @@ export const GlobalSubscriptionModal: React.FC = () => {
               <div key={article.id} className="bg-secondary-dark p-4 border border-border-color">
                 <h4 className="font-medium text-text-white mb-2">{article.title}</h4>
                 <p className="text-sm text-text-muted mb-3 line-clamp-2">{article.summary}</p>
-                <Button
-                  variant="link"
-                  className="text-accent-primary hover:text-accent-hover p-0 h-auto font-normal"
-                  onClick={() => window.open(`/blog/${article.slug.trim()}`, '_blank')}
-                >
-                  Read article <ExternalLink className="w-3 h-3 ml-1" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="link"
+                    className="text-accent-primary hover:text-accent-hover p-0 h-auto font-normal"
+                    onClick={() => handleReadArticle(article)}
+                  >
+                    Read article
+                  </Button>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-text-muted hover:text-accent-primary p-0 h-auto"
+                    onClick={() => window.open(`/blog/${article.slug.trim()}`, '_blank')}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -268,6 +349,146 @@ export const GlobalSubscriptionModal: React.FC = () => {
     </div>
   );
 
+  const renderArticleReader = () => {
+    if (articleLoading) {
+      return (
+        <div className="space-y-6 p-6">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackFromArticle}
+              className="text-text-muted hover:text-text-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </div>
+          <div className="space-y-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-secondary-dark rounded w-3/4"></div>
+              <div className="h-8 bg-secondary-dark rounded w-full"></div>
+              <div className="h-4 bg-secondary-dark rounded w-5/6"></div>
+              <div className="space-y-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-3 bg-secondary-dark rounded w-full"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (!fullArticle || !currentArticle) {
+      return (
+        <div className="space-y-6 p-6 text-center">
+          <p className="text-text-muted">Article not found</p>
+          <Button onClick={handleBackFromArticle} variant="outline">
+            Back to Articles
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 p-6 max-h-96 overflow-y-auto">
+        <div className="flex items-center justify-between sticky top-0 bg-card-dark pb-4 border-b border-border-color">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBackFromArticle}
+            className="text-text-muted hover:text-text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`/blog/${fullArticle.slug.trim()}`, '_blank')}
+            className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
+          >
+            <ExternalLink className="w-3 h-3 mr-2" />
+            Full Article
+          </Button>
+        </div>
+
+        <article className="space-y-4">
+          <header className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="default" className="bg-accent-primary text-white">
+                {fullArticle.category}
+              </Badge>
+              {fullArticle.featured && (
+                <Badge variant="secondary" className="bg-accent-hover text-primary-dark">
+                  FEATURED
+                </Badge>
+              )}
+            </div>
+
+            <h1 className="text-lg font-bold text-text-white leading-tight">
+              {fullArticle.title}
+            </h1>
+            
+            <p className="text-sm text-text-muted leading-relaxed">
+              {fullArticle.summary}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4 text-xs text-text-body">
+              <span className="font-medium text-accent-primary">By {fullArticle.author}</span>
+              <div className="flex items-center gap-1">
+                <Calendar size={12} />
+                <span>{new Date(fullArticle.published_date).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock size={12} />
+                <span>{fullArticle.read_time} min read</span>
+              </div>
+            </div>
+
+            {fullArticle.tags && fullArticle.tags.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <Tag size={12} className="text-accent-primary" />
+                {fullArticle.tags.slice(0, 3).map((tag) => (
+                  <Badge 
+                    key={tag} 
+                    variant="outline" 
+                    className="text-xs text-text-body border-border-color"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </header>
+
+          <div className="prose prose-sm prose-invert max-w-none">
+            <div 
+              className="text-sm text-text-body leading-relaxed whitespace-pre-wrap"
+              style={{ lineHeight: '1.6' }}
+            >
+              {fullArticle.content.length > 1000 
+                ? `${fullArticle.content.substring(0, 1000)}...` 
+                : fullArticle.content
+              }
+            </div>
+            {fullArticle.content.length > 1000 && (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => window.open(`/blog/${fullArticle.slug.trim()}`, '_blank')}
+                className="text-accent-primary hover:text-accent-hover p-0 mt-2"
+              >
+                Read full article <ExternalLink className="w-3 h-3 ml-1" />
+              </Button>
+            )}
+          </div>
+        </article>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
       <DialogContent className="sm:max-w-lg bg-card-dark border-accent-primary/20 p-0">
@@ -278,6 +499,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
         {modalState === 'initial' && renderInitialState()}
         {modalState === 'success' && renderSuccessState()}
         {modalState === 'articles-only' && renderArticlesOnlyState()}
+        {modalState === 'reading-article' && renderArticleReader()}
       </DialogContent>
     </Dialog>
   );

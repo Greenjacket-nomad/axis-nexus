@@ -28,12 +28,25 @@ const BlogPost = () => {
     try {
       setLoading(true);
       
-      const { data, error: fetchError } = await supabase
+      // Try exact match first, then trimmed match if no result
+      let { data, error: fetchError } = await supabase
         .from('articles')
         .select('*')
         .eq('slug', slug)
         .eq('is_active', true)
         .maybeSingle();
+
+      // If no exact match found, try with trimmed slug comparison
+      if (!data && !fetchError) {
+        const { data: trimmedData, error: trimmedError } = await supabase
+          .from('articles')
+          .select('*')
+          .eq('is_active', true)
+          .rpc('find_article_by_trimmed_slug', { input_slug: slug });
+        
+        data = trimmedData;
+        fetchError = trimmedError;
+      }
 
       if (fetchError) throw fetchError;
       
