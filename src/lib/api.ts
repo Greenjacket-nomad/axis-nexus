@@ -44,11 +44,9 @@ export interface ChatResponse {
 
 export class ApiClient {
   private baseUrl: string;
-  private credentials: string;
 
   constructor() {
     this.baseUrl = N8N_CONFIG.baseUrl;
-    this.credentials = btoa('greenwebsite:greensite'); // Base64 encode credentials
   }
 
   // Timeout utility
@@ -98,7 +96,6 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Basic ${this.credentials}`,
         ...options.headers,
       },
     };
