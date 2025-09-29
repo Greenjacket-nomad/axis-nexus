@@ -6,13 +6,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, MapPin, Phone, Loader2, AlertCircle, Check, CheckCircle } from 'lucide-react';
 import { apiClient, N8nContactResponse } from '@/lib/api';
 import { validateContactForm, ContactFormData, ValidationErrors, ErrorType } from '@/lib/validation';
-import { SubscriptionModal } from '@/components/contact/SubscriptionModal';
+import { useSubscriptionModal } from '@/contexts/SubscriptionModalContext';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
 export default function Contact() {
   const { toast } = useToast();
+  const { openModal } = useSubscriptionModal();
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -24,7 +25,6 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [n8nResponse, setN8nResponse] = useState<N8nContactResponse | null>(null);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -66,19 +66,24 @@ export default function Contact() {
       if (response.success && response.data) {
         setSubmitted(true);
         setN8nResponse(response.data);
-        setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
         
         toast({
           title: "Message Sent!",
           description: "Your message has been submitted successfully. We'll get back to you soon.",
         });
 
-        // Show subscription modal if recommended
+        // Automatically open subscription modal with pre-filled data
         if (response.data.showSubscribePrompt) {
           setTimeout(() => {
-            setShowSubscriptionModal(true);
+            openModal({
+              name: formData.name,
+              email: formData.email,
+              interest: formData.interest
+            });
           }, 1500);
         }
+        
+        setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
       } else {
         throw new Error(response.error || 'Failed to send message');
       }
@@ -144,7 +149,11 @@ export default function Contact() {
                 </Button>
                 {n8nResponse?.showSubscribePrompt && (
                   <Button 
-                    onClick={() => setShowSubscriptionModal(true)}
+                    onClick={() => openModal({
+                      name: formData.name || '',
+                      email: formData.email || '',
+                      interest: formData.interest || ''
+                    })}
                     variant="outline"
                     className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
                   >
@@ -156,15 +165,6 @@ export default function Contact() {
           </div>
         </section>
         
-        {/* Subscription Modal */}
-        {n8nResponse && (
-          <SubscriptionModal
-            isOpen={showSubscriptionModal}
-            onClose={() => setShowSubscriptionModal(false)}
-            recommendedData={n8nResponse.recommended}
-          />
-        )}
-
         <Footer />
       </div>
     );
@@ -406,15 +406,6 @@ export default function Contact() {
         </div>
       </section>
       
-      {/* Subscription Modal */}
-      {n8nResponse && (
-        <SubscriptionModal
-          isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-          recommendedData={n8nResponse.recommended}
-        />
-      )}
-
       <Footer />
     </div>
   );

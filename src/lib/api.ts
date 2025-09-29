@@ -29,8 +29,10 @@ export interface N8nContactResponse {
 }
 
 export interface SubscriptionData {
+  name: string;
   email: string;
-  interests?: string[];
+  interest: string;
+  subscribed: boolean;
 }
 
 export interface ChatQuery {
@@ -136,8 +138,17 @@ export class ApiClient {
   }
 
   // Subscription submission
-  async submitSubscription(data: SubscriptionData): Promise<ApiResponse> {
-    return this.request(N8N_CONFIG.endpoints.subscribe, {
+  async submitSubscription(data: SubscriptionData): Promise<ApiResponse<{
+    status: string;
+    showSubscribePrompt?: boolean;
+    response?: Array<{
+      id: number;
+      title: string;
+      summary: string;
+      slug: string;
+    }>;
+  }>> {
+    return this.request('/webhook/subscribe', {
       method: 'POST',
       body: JSON.stringify(data),
     });
