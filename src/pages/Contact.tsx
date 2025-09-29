@@ -8,6 +8,7 @@ interface ContactFormData {
   name: string;
   email: string;
   subject: string;
+  interest: string;
   message: string;
 }
 
@@ -16,13 +17,14 @@ const Contact = () => {
     name: '',
     email: '',
     subject: '',
+    interest: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
@@ -37,7 +39,7 @@ const Contact = () => {
     try {
       await apiClient.submitContact(formData);
       setSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
     } catch (err) {
       setError('Failed to send message. Please try again.');
       console.error('Contact form submission error:', err);
@@ -208,6 +210,45 @@ const Contact = () => {
                       className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors"
                       placeholder="What's this about?"
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="interest" className="block h3 mb-2">
+                      Area of Interest *
+                    </label>
+                    <select
+                      id="interest"
+                      name="interest"
+                      value={formData.interest}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors appearance-none cursor-pointer"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 12px center',
+                        backgroundSize: '16px'
+                      }}
+                    >
+                      <option value="" disabled className="bg-primary-dark text-text-muted">
+                        Choose One
+                      </option>
+                      <option value="Quantum Computing" className="bg-primary-dark text-text-white">
+                        Quantum Computing
+                      </option>
+                      <option value="Web3" className="bg-primary-dark text-text-white">
+                        Web3
+                      </option>
+                      <option value="Robotics" className="bg-primary-dark text-text-white">
+                        Robotics
+                      </option>
+                      <option value="Artificial Intelligence" className="bg-primary-dark text-text-white">
+                        Artificial Intelligence
+                      </option>
+                      <option value="Space Exploration" className="bg-primary-dark text-text-white">
+                        Space Exploration
+                      </option>
+                    </select>
                   </div>
 
                   <div>
