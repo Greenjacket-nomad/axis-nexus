@@ -116,9 +116,9 @@ const Projects = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-16">
+      <section className="section-spacing pt-32">
         <div className="container-axis">
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
             <h1 className="h1">Our Projects</h1>
             <p className="body-text max-w-2xl mx-auto">
               Explore our portfolio of cutting-edge projects spanning AI, blockchain, 
@@ -129,18 +129,18 @@ const Projects = () => {
       </section>
 
       {/* Filters */}
-      <section className="pb-12">
+      <section className="section-spacing-sm">
         <div className="container-axis">
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Category Filter */}
             <div>
-              <h3 className="h3 mb-4 text-center">Filter by Category</h3>
-              <div className="flex flex-wrap gap-3 justify-center">
+              <h3 className="h3 mb-6 text-center">Filter by Category</h3>
+              <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {CATEGORIES.map((category) => (
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-300 ${
                       selectedCategory === category
                         ? 'bg-accent-primary text-white'
                         : 'bg-card-dark text-text-muted hover:bg-secondary-dark hover:text-accent-hover'
@@ -154,13 +154,13 @@ const Projects = () => {
 
             {/* Status Filter */}
             <div>
-              <h3 className="h3 mb-4 text-center">Filter by Status</h3>
-              <div className="flex gap-3 justify-center">
+              <h3 className="h3 mb-6 text-center">Filter by Status</h3>
+              <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {["All", "Completed", "In Progress"].map((status) => (
                   <button
                     key={status}
                     onClick={() => setSelectedStatus(status)}
-                    className={`px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-300 ${
                       selectedStatus === status
                         ? 'bg-accent-primary text-white'
                         : 'bg-card-dark text-text-muted hover:bg-secondary-dark hover:text-accent-hover'
@@ -177,10 +177,10 @@ const Projects = () => {
 
       {/* Featured Projects */}
       {featuredProjects.length > 0 && (
-        <section className="pb-16">
+        <section className="section-spacing">
           <div className="container-axis">
             <h2 className="h2 text-center mb-12">Featured Projects</h2>
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="grid-responsive cols-2">
               {featuredProjects.map((project) => (
                 <div
                   key={project.id}
@@ -259,10 +259,10 @@ const Projects = () => {
 
       {/* Regular Projects Grid */}
       {regularProjects.length > 0 && (
-        <section className="pb-20">
+        <section className="section-spacing">
           <div className="container-axis">
             <h2 className="h2 text-center mb-12">All Projects</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid-responsive cols-3">
               {regularProjects.map((project) => (
                 <div
                   key={project.id}

@@ -270,7 +270,90 @@
   .container-axis {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 16px;
+  }
+
+  @media (min-width: 640px) {
+    .container-axis {
+      padding: 0 24px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-axis {
+      padding: 0 32px;
+    }
+  }
+
+  /* Responsive grid utilities */
+  .grid-responsive {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .grid-responsive.cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .grid-responsive.cols-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .grid-responsive.cols-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .grid-responsive.cols-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .grid-responsive {
+      gap: 32px;
+    }
+  }
+
+  /* Section spacing utilities */
+  .section-spacing {
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+
+  @media (min-width: 640px) {
+    .section-spacing {
+      padding-top: 64px;
+      padding-bottom: 64px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-spacing {
+      padding-top: 80px;
+      padding-bottom: 80px;
+    }
+  }
+
+  .section-spacing-sm {
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+
+  @media (min-width: 640px) {
+    .section-spacing-sm {
+      padding-top: 48px;
+      padding-bottom: 48px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-spacing-sm {
+      padding-top: 64px;
+      padding-bottom: 64px;
+    }
   }
 
   /* Effects */

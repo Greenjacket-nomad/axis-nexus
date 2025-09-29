@@ -79,9 +79,9 @@ const Contact = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-16">
+      <section className="section-spacing pt-32">
         <div className="container-axis">
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
             <h1 className="h1">Get In Touch</h1>
             <p className="body-text max-w-2xl mx-auto">
               Have a project in mind or want to discuss technology solutions? 
@@ -91,9 +91,9 @@ const Contact = () => {
         </div>
       </section>
 
-      <section className="pb-20">
+      <section className="section-spacing">
         <div className="container-axis">
-          <div className="grid lg:grid-cols-2 gap-12">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Contact Information */}
             <div className="space-y-8">
               <div>
@@ -160,7 +160,7 @@ const Contact = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label htmlFor="name" className="block h3 mb-2">
                         Name *

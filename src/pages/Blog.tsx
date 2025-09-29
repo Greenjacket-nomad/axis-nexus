@@ -66,9 +66,9 @@ const Blog = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-16">
+      <section className="section-spacing pt-32">
         <div className="container-axis">
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
             <h1 className="h1">Technology Insights</h1>
             <p className="body-text max-w-2xl mx-auto">
               Explore cutting-edge technology topics, best practices, and insights 
@@ -79,21 +79,21 @@ const Blog = () => {
       </section>
 
       {/* Category Filter */}
-      <section className="pb-12">
+      <section className="section-spacing-sm">
         <div className="container-axis">
           {loading ? (
-            <div className="flex flex-wrap gap-4 justify-center">
+            <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
               {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-10 w-32" />
+                <Skeleton key={i} className="h-10 w-24 sm:w-32" />
               ))}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-4 justify-center">
+            <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
               {categories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-6 py-2 text-sm font-medium transition-all duration-300 ${
+                  className={`px-4 sm:px-6 py-2 text-sm font-medium transition-all duration-300 ${
                     selectedCategory === category
                       ? 'bg-accent-primary text-white'
                       : 'bg-card-dark text-text-muted hover:bg-secondary-dark hover:text-accent-hover'
@@ -108,7 +108,7 @@ const Blog = () => {
       </section>
 
       {/* Blog Posts Grid */}
-      <section className="pb-20">
+      <section className="section-spacing">
         <div className="container-axis">
           {error && (
             <div className="text-center py-12">
@@ -123,7 +123,7 @@ const Blog = () => {
           )}
           
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid-responsive cols-3">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="bg-card-dark p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -145,12 +145,12 @@ const Blog = () => {
               <p className="body-text">No articles found in this category.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {filteredArticles.map((article) => (
                 <Link
                   key={article.id}
                   to={`/blog/${article.slug}`}
-                  className={`group block transition-all duration-300 hover:scale-105 ${
+                  className={`group block transition-all duration-300 hover:scale-[1.02] ${
                     article.featured ? 'md:col-span-2 lg:col-span-2' : ''
                   }`}
                 >
