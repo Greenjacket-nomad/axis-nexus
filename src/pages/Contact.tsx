@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mail, MapPin, Phone, Loader2, AlertCircle, Check, CheckCircle } from 'lucide-react';
-import { apiClient, N8nContactResponse } from '@/lib/api';
+import { Mail, MapPin, Phone, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 import { validateContactForm, ContactFormData, ValidationErrors, ErrorType } from '@/lib/validation';
 import { useSubscriptionModal } from '@/contexts/SubscriptionModalContext';
 import { useToast } from '@/hooks/use-toast';
@@ -22,9 +22,7 @@ export default function Contact() {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [n8nResponse, setN8nResponse] = useState<N8nContactResponse | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -64,15 +62,15 @@ export default function Contact() {
       const response = await apiClient.submitContact(formData);
       
       if (response.success && response.data) {
-        setSubmitted(true);
-        setN8nResponse(response.data);
-        
         toast({
           title: "Message Sent!",
           description: "Your message has been submitted successfully. We'll get back to you soon.",
         });
 
-        // Automatically open subscription modal with pre-filled data
+        // Reset form
+        setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
+
+        // Open subscription modal with pre-filled data immediately
         if (response.data.showSubscribePrompt) {
           setTimeout(() => {
             openModal({
@@ -80,10 +78,8 @@ export default function Contact() {
               email: formData.email,
               interest: formData.interest
             });
-          }, 1500);
+          }, 500);
         }
-        
-        setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
       } else {
         throw new Error(response.error || 'Failed to send message');
       }
@@ -120,55 +116,6 @@ export default function Contact() {
     }
   };
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-primary-dark">
-        <Header />
-        
-        <section className="pt-32 pb-20">
-          <div className="container-axis">
-            <div className="max-w-md mx-auto text-center space-y-6">
-              <div className="w-20 h-20 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="w-10 h-10 text-accent-primary" />
-              </div>
-              <h1 className="h1 mb-6">Thank You!</h1>
-              <p className="body-text mb-8 max-w-2xl mx-auto">
-                Your message has been sent successfully and stored securely. 
-                {n8nResponse?.status && ` Status: ${n8nResponse.status}.`}
-                {' '}We'll get back to you within 24 hours.
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button 
-                  onClick={() => {
-                    setSubmitted(false);
-                    setN8nResponse(null);
-                  }}
-                  className="btn-primary"
-                >
-                  Send Another Message
-                </Button>
-                {n8nResponse?.showSubscribePrompt && (
-                  <Button 
-                    onClick={() => openModal({
-                      name: formData.name || '',
-                      email: formData.email || '',
-                      interest: formData.interest || ''
-                    })}
-                    variant="outline"
-                    className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
-                  >
-                    Subscribe for Updates
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-        
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-primary-dark">
