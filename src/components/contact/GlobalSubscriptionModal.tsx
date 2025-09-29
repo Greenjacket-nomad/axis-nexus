@@ -275,20 +275,9 @@ export const GlobalSubscriptionModal: React.FC = () => {
           <DialogTitle>Subscription Modal</DialogTitle>
         </DialogHeader>
         
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={closeModal}
-            className="absolute top-4 right-4 z-10 h-6 w-6 text-text-muted hover:text-text-white"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
-          {modalState === 'initial' && renderInitialState()}
-          {modalState === 'success' && renderSuccessState()}
-          {modalState === 'articles-only' && renderArticlesOnlyState()}
-        </div>
+        {modalState === 'initial' && renderInitialState()}
+        {modalState === 'success' && renderSuccessState()}
+        {modalState === 'articles-only' && renderArticlesOnlyState()}
       </DialogContent>
     </Dialog>
   );
