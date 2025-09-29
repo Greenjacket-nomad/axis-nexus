@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, MapPin, Phone, Loader2, AlertCircle, Check, CheckCircle } from 'lucide-react';
 import { apiClient, N8nContactResponse } from '@/lib/api';
 import { validateContactForm, ContactFormData, ValidationErrors, ErrorType } from '@/lib/validation';
-import { PrivacyDisclaimer } from '@/components/contact/PrivacyDisclaimer';
 import { SubscriptionModal } from '@/components/contact/SubscriptionModal';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
@@ -248,9 +247,6 @@ export default function Contact() {
             {/* Contact Form */}
             <div className="bg-card-dark p-8 md:p-12 border border-border-color">
               <h2 className="h2 mb-8">Send us a message</h2>
-              
-              {/* Privacy Disclaimer */}
-              <PrivacyDisclaimer />
               
               {errors.form && (
                 <Alert variant="destructive" className="mb-6">
