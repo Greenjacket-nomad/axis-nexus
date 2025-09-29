@@ -684,7 +684,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
             variant="outline"
             className="flex-1 border-border-color text-text-muted hover:text-text-white"
           >
-            Ask Another Question
+            Ask Another
           </Button>
           <Button
             onClick={closeModal}
