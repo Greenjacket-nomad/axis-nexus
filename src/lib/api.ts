@@ -1,17 +1,31 @@
 import { N8N_CONFIG } from './constants';
+import { ErrorType } from './validation';
 
 // Type definitions for API responses
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  errorType?: ErrorType;
 }
 
 export interface ContactFormData {
   name: string;
   email: string;
   subject: string;
+  interest: string;
   message: string;
+}
+
+// N8N specific response interface
+export interface N8nContactResponse {
+  status: string;
+  showSubscribePrompt: boolean;
+  recommended: {
+    name: string;
+    email: string;
+    interest: string;
+  };
 }
 
 export interface SubscriptionData {
@@ -30,9 +44,47 @@ export interface ChatResponse {
 
 export class ApiClient {
   private baseUrl: string;
+  private credentials: string;
 
   constructor() {
     this.baseUrl = N8N_CONFIG.baseUrl;
+    this.credentials = btoa('greenwebsite:greensite'); // Base64 encode credentials
+  }
+
+  // Timeout utility
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    );
+    return Promise.race([promise, timeout]);
+  }
+
+  // Enhanced error handling
+  private handleError(error: any, url: string): ApiResponse {
+    console.error('API Request failed:', { url, error });
+    
+    let errorType = ErrorType.UNKNOWN;
+    let errorMessage = 'An unexpected error occurred';
+
+    if (error.name === 'TimeoutError' || error.message === 'Request timed out') {
+      errorType = ErrorType.TIMEOUT;
+      errorMessage = 'Request timed out. Please check your connection and try again.';
+    } else if (error.message.includes('401') || error.message.includes('403')) {
+      errorType = ErrorType.AUTHENTICATION;
+      errorMessage = 'Authentication failed. Please contact support.';
+    } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+      errorType = ErrorType.SERVER;
+      errorMessage = 'Server error. Please try again later.';
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
+      errorType = ErrorType.NETWORK;
+      errorMessage = 'Network error. Please check your internet connection.';
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      errorType,
+    };
   }
 
   private async request<T>(
@@ -46,13 +98,13 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Authorization': `Basic ${this.credentials}`,
         ...options.headers,
       },
     };
 
     try {
-      const response = await fetch(url, config);
+      const response = await this.withTimeout(fetch(url, config), 15000); // 15 second timeout
       
       if (!response.ok) {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
@@ -65,20 +117,24 @@ export class ApiClient {
         data,
       };
     } catch (error) {
-      console.error('API Request failed:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return this.handleError(error, url);
     }
   }
 
-  // Contact form submission
-  async submitContact(data: ContactFormData): Promise<ApiResponse> {
-    return this.request(N8N_CONFIG.endpoints.contact, {
+  // Contact form submission with N8N field transformation
+  async submitContact(data: ContactFormData): Promise<ApiResponse<N8nContactResponse>> {
+    // Transform field names to match N8N requirements (case-sensitive)
+    const transformedData = {
+      Name: data.name,
+      Email: data.email,
+      Interest: data.interest,
+      Subject: data.subject,
+      Message: data.message,
+    };
+
+    return this.request<N8nContactResponse>(N8N_CONFIG.endpoints.contact, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(transformedData),
     });
   }
 

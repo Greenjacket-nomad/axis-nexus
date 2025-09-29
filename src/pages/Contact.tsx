@@ -1,18 +1,19 @@
-import { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Mail, MapPin, Phone, Loader2, AlertCircle, Check, CheckCircle } from 'lucide-react';
+import { apiClient, N8nContactResponse } from '@/lib/api';
+import { validateContactForm, ContactFormData, ValidationErrors, ErrorType } from '@/lib/validation';
+import { PrivacyDisclaimer } from '@/components/contact/PrivacyDisclaimer';
+import { SubscriptionModal } from '@/components/contact/SubscriptionModal';
+import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { apiClient } from '@/lib/api';
 
-interface ContactFormData {
-  name: string;
-  email: string;
-  subject: string;
-  interest: string;
-  message: string;
-}
-
-const Contact = () => {
+export default function Contact() {
+  const { toast } = useToast();
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -22,27 +23,94 @@ const Contact = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [n8nResponse, setN8nResponse] = useState<N8nContactResponse | null>(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }));
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form data
+    const validationErrors = validateContactForm(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast({
+        title: "Validation Error",
+        description: "Please check the highlighted fields and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    setError('');
+    setErrors({});
 
     try {
-      await apiClient.submitContact(formData);
-      setSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
-    } catch (err) {
-      setError('Failed to send message. Please try again.');
+      const response = await apiClient.submitContact(formData);
+      
+      if (response.success && response.data) {
+        setSubmitted(true);
+        setN8nResponse(response.data);
+        setFormData({ name: '', email: '', subject: '', interest: '', message: '' });
+        
+        toast({
+          title: "Message Sent!",
+          description: "Your message has been submitted successfully. We'll get back to you soon.",
+        });
+
+        // Show subscription modal if recommended
+        if (response.data.showSubscribePrompt) {
+          setTimeout(() => {
+            setShowSubscriptionModal(true);
+          }, 1500);
+        }
+      } else {
+        throw new Error(response.error || 'Failed to send message');
+      }
+    } catch (err: any) {
       console.error('Contact form submission error:', err);
+      
+      let errorMessage = 'Failed to send message. Please try again.';
+      
+      if (err.errorType) {
+        switch (err.errorType) {
+          case ErrorType.TIMEOUT:
+            errorMessage = 'Request timed out. Please check your connection and try again.';
+            break;
+          case ErrorType.AUTHENTICATION:
+            errorMessage = 'Authentication failed. Please contact support.';
+            break;
+          case ErrorType.NETWORK:
+            errorMessage = 'Network error. Please check your internet connection.';
+            break;
+          case ErrorType.SERVER:
+            errorMessage = 'Server error. Please try again later.';
+            break;
+        }
+      }
+      
+      setErrors({ form: errorMessage });
+      toast({
+        title: "Submission Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -56,20 +124,47 @@ const Contact = () => {
         <section className="pt-32 pb-20">
           <div className="container-axis">
             <div className="max-w-md mx-auto text-center space-y-6">
-              <CheckCircle size={64} className="text-accent-primary mx-auto" />
-              <h1 className="h2">Message Sent!</h1>
-              <p className="body-text">
-                Thank you for reaching out. We'll get back to you within 24 hours.
+              <div className="w-20 h-20 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Check className="w-10 h-10 text-accent-primary" />
+              </div>
+              <h1 className="h1 mb-6">Thank You!</h1>
+              <p className="body-text mb-8 max-w-2xl mx-auto">
+                Your message has been sent successfully and stored securely. 
+                {n8nResponse?.status && ` Status: ${n8nResponse.status}.`}
+                {' '}We'll get back to you within 24 hours.
               </p>
-              <button
-                onClick={() => setSubmitted(false)}
-                className="btn-primary"
-              >
-                Send Another Message
-              </button>
+              <div className="flex gap-4 justify-center">
+                <Button 
+                  onClick={() => {
+                    setSubmitted(false);
+                    setN8nResponse(null);
+                  }}
+                  className="btn-primary"
+                >
+                  Send Another Message
+                </Button>
+                {n8nResponse?.showSubscribePrompt && (
+                  <Button 
+                    onClick={() => setShowSubscriptionModal(true)}
+                    variant="outline"
+                    className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
+                  >
+                    Subscribe for Updates
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </section>
+        
+        {/* Subscription Modal */}
+        {n8nResponse && (
+          <SubscriptionModal
+            isOpen={showSubscriptionModal}
+            onClose={() => setShowSubscriptionModal(false)}
+            recommendedData={n8nResponse.recommended}
+          />
+        )}
 
         <Footer />
       </div>
@@ -151,149 +246,180 @@ const Contact = () => {
             </div>
 
             {/* Contact Form */}
-            <div>
-              <div className="bg-card-dark p-8">
-                <h2 className="h2 mb-6">Send us a message</h2>
-                
-                {error && (
-                  <div className="mb-6 p-4 bg-red-900/20 border border-red-500 text-red-300">
-                    {error}
-                  </div>
-                )}
+            <div className="bg-card-dark p-8 md:p-12 border border-border-color">
+              <h2 className="h2 mb-8">Send us a message</h2>
+              
+              {/* Privacy Disclaimer */}
+              <PrivacyDisclaimer />
+              
+              {errors.form && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.form}</AlertDescription>
+                </Alert>
+              )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label htmlFor="name" className="block h3 mb-2">
-                        Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        required
-                        className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors"
-                        placeholder="Your name"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="email" className="block h3 mb-2">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                        className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors"
-                        placeholder="your@email.com"
-                      />
-                    </div>
-                  </div>
-
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <label htmlFor="subject" className="block h3 mb-2">
-                      Subject *
+                    <label htmlFor="name" className="block h3 mb-2">
+                      Name *
                     </label>
-                    <input
+                    <Input
                       type="text"
-                      id="subject"
-                      name="subject"
-                      value={formData.subject}
+                      id="name"
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors"
-                      placeholder="What's this about?"
+                      className={`bg-primary-dark text-text-white border-border-color focus:border-accent-primary ${
+                        errors.name ? 'border-destructive' : ''
+                      }`}
+                      placeholder="Your full name"
+                      disabled={isSubmitting}
                     />
-                  </div>
-
-                  <div>
-                    <label htmlFor="interest" className="block h3 mb-2">
-                      Area of Interest *
-                    </label>
-                    <select
-                      id="interest"
-                      name="interest"
-                      value={formData.interest}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors appearance-none cursor-pointer"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'right 12px center',
-                        backgroundSize: '16px'
-                      }}
-                    >
-                      <option value="" disabled className="bg-primary-dark text-text-muted">
-                        Choose One
-                      </option>
-                      <option value="Quantum Computing" className="bg-primary-dark text-text-white">
-                        Quantum Computing
-                      </option>
-                      <option value="Web3" className="bg-primary-dark text-text-white">
-                        Web3
-                      </option>
-                      <option value="Robotics" className="bg-primary-dark text-text-white">
-                        Robotics
-                      </option>
-                      <option value="Artificial Intelligence" className="bg-primary-dark text-text-white">
-                        Artificial Intelligence
-                      </option>
-                      <option value="Space Exploration" className="bg-primary-dark text-text-white">
-                        Space Exploration
-                      </option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block h3 mb-2">
-                      Message *
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      required
-                      rows={6}
-                      className="w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors resize-none"
-                      placeholder="Tell us about your project or question..."
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send size={20} />
-                        Send Message
-                      </>
+                    {errors.name && (
+                      <p className="text-destructive text-sm mt-1">{errors.name}</p>
                     )}
-                  </button>
-                </form>
-              </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block h3 mb-2">
+                      Email *
+                    </label>
+                    <Input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`bg-primary-dark text-text-white border-border-color focus:border-accent-primary ${
+                        errors.email ? 'border-destructive' : ''
+                      }`}
+                      placeholder="your.email@example.com"
+                      disabled={isSubmitting}
+                    />
+                    {errors.email && (
+                      <p className="text-destructive text-sm mt-1">{errors.email}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="subject" className="block h3 mb-2">
+                    Subject *
+                  </label>
+                  <Input
+                    type="text"
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    className={`bg-primary-dark text-text-white border-border-color focus:border-accent-primary ${
+                      errors.subject ? 'border-destructive' : ''
+                    }`}
+                    placeholder="What's this about?"
+                    disabled={isSubmitting}
+                  />
+                  {errors.subject && (
+                    <p className="text-destructive text-sm mt-1">{errors.subject}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="interest" className="block h3 mb-2">
+                    Area of Interest *
+                  </label>
+                  <select
+                    id="interest"
+                    name="interest"
+                    value={formData.interest}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 bg-primary-dark text-text-white border border-border-color focus:outline-none focus:border-accent-primary transition-colors appearance-none cursor-pointer ${
+                      errors.interest ? 'border-destructive' : ''
+                    }`}
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      backgroundSize: '16px'
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <option value="" disabled className="bg-primary-dark text-text-muted">
+                      Choose One
+                    </option>
+                    <option value="Quantum Computing" className="bg-primary-dark text-text-white">
+                      Quantum Computing
+                    </option>
+                    <option value="Web3" className="bg-primary-dark text-text-white">
+                      Web3
+                    </option>
+                    <option value="Robotics" className="bg-primary-dark text-text-white">
+                      Robotics
+                    </option>
+                    <option value="Artificial Intelligence" className="bg-primary-dark text-text-white">
+                      Artificial Intelligence
+                    </option>
+                    <option value="Space Exploration" className="bg-primary-dark text-text-white">
+                      Space Exploration
+                    </option>
+                  </select>
+                  {errors.interest && (
+                    <p className="text-destructive text-sm mt-1">{errors.interest}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="block h3 mb-2">
+                    Message *
+                  </label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    rows={6}
+                    className={`bg-primary-dark text-text-white border-border-color focus:border-accent-primary resize-vertical ${
+                      errors.message ? 'border-destructive' : ''
+                    }`}
+                    placeholder="Tell us about your project, ideas, or questions..."
+                    disabled={isSubmitting}
+                  />
+                  {errors.message && (
+                    <p className="text-destructive text-sm mt-1">{errors.message}</p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-accent-primary text-text-white hover:bg-accent-hover transition-all duration-300 min-h-[48px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Sending Message...
+                    </>
+                  ) : (
+                    'Send Message'
+                  )}
+                </Button>
+              </form>
             </div>
           </div>
         </div>
       </section>
+      
+      {/* Subscription Modal */}
+      {n8nResponse && (
+        <SubscriptionModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+          recommendedData={n8nResponse.recommended}
+        />
+      )}
 
       <Footer />
     </div>
   );
-};
-
-export default Contact;
+}
