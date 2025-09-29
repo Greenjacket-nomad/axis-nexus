@@ -39,8 +39,24 @@ export interface ChatQuery {
   chatInput: string;
 }
 
+export interface ArticleRecommendation {
+  article_id: number;
+  title: string;
+  summary: string;
+  category: string;
+  author: string;
+  published_date: string;
+  article_url: string;
+  read_time_minutes: number;
+}
+
 export interface ChatResponse {
-  response: string;
+  status: 'success' | 'not_relevant' | 'no_results';
+  data: {
+    ai_answer: string;
+    recommended_articles: ArticleRecommendation[];
+    article_count: number;
+  };
   timestamp: string;
 }
 
@@ -156,10 +172,33 @@ export class ApiClient {
 
   // AI Chat query
   async sendChatQuery(query: string): Promise<ApiResponse<ChatResponse>> {
-    return this.request<ChatResponse>(N8N_CONFIG.endpoints.chat, {
+    const url = 'https://mkholm-n8n.duckdns.org/webhook/chat';
+    
+    const config: RequestInit = {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: JSON.stringify({ chatInput: query }),
-    });
+    };
+
+    try {
+      const response = await this.withTimeout(fetch(url, config), 15000);
+      
+      if (!response.ok) {
+        throw new Error(`Chat API Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      return this.handleError(error, url);
+    }
   }
 
   // Health check

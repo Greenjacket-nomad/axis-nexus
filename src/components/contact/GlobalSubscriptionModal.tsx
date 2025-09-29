@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Check, Loader2, X, Mail, MessageCircle, ExternalLink, ArrowLeft, Calendar, Clock, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useSubscriptionModal } from '@/contexts/SubscriptionModalContext';
+import { useAIChat } from '@/contexts/AIChatContext';
+import { ChatTriggerButton } from '@/components/ai-chat/ChatTriggerButton';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,13 +24,15 @@ export const GlobalSubscriptionModal: React.FC = () => {
     isOpen, 
     modalState, 
     prefilledData, 
-    articles,
-    currentArticle,
+    articles, 
+    currentArticle, 
     closeModal, 
     setModalState, 
-    setArticles,
-    setCurrentArticle
+    setArticles, 
+    setCurrentArticle 
   } = useSubscriptionModal();
+  
+  const { openChat } = useAIChat();
   
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -251,18 +255,25 @@ export const GlobalSubscriptionModal: React.FC = () => {
             <p className="text-sm text-text-muted mb-3">
               Ask our AI assistant for personalized answers
             </p>
-            <Button
-              variant="outline"
-              size="sm"
+            <ChatTriggerButton 
+              variant="inline"
               className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
-            >
-              Ask a Question
-            </Button>
+            />
           </div>
         </div>
       </div>
 
       <div className="flex gap-3">
+        <Button
+          onClick={() => {
+            closeModal();
+            openChat();
+          }}
+          variant="outline"
+          className="flex-1 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
+        >
+          Ask AI Assistant
+        </Button>
         <Button
           onClick={() => setModalState('initial')}
           variant="outline"
