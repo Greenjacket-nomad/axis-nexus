@@ -36,13 +36,15 @@ const BlogPost = () => {
         .eq('is_active', true)
         .maybeSingle();
 
-      // If no exact match found, try with trimmed slug comparison
+      // If no exact match found, try with pattern matching for slugs with spaces
       if (!data && !fetchError) {
         const { data: trimmedData, error: trimmedError } = await supabase
           .from('articles')
           .select('*')
           .eq('is_active', true)
-          .rpc('find_article_by_trimmed_slug', { input_slug: slug });
+          .ilike('slug', `%${slug.trim()}%`)
+          .limit(1)
+          .maybeSingle();
         
         data = trimmedData;
         fetchError = trimmedError;

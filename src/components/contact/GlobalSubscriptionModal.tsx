@@ -113,12 +113,14 @@ export const GlobalSubscriptionModal: React.FC = () => {
         .maybeSingle();
 
       if (!data && !error) {
-        // Try with trimmed slug comparison if exact match fails
+        // Try with pattern matching for slugs with spaces
         const { data: trimmedData, error: trimmedError } = await supabase
           .from('articles')
           .select('*')
           .eq('is_active', true)
-          .rpc('find_article_by_trimmed_slug', { input_slug: article.slug.trim() });
+          .ilike('slug', `%${article.slug.trim()}%`)
+          .limit(1)
+          .maybeSingle();
         
         if (trimmedData) {
           setFullArticle(trimmedData);
