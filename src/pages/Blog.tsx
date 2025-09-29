@@ -1,68 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
-const SAMPLE_POSTS = [
-  {
-    id: 1,
-    title: "The Future of AI in Software Development",
-    excerpt: "Exploring how artificial intelligence is revolutionizing the way we build and maintain software applications.",
-    date: "2024-01-15",
-    readTime: "8 min read",
-    category: "AI & Technology",
-    featured: true
-  },
-  {
-    id: 2,
-    title: "Building Scalable Microservices Architecture",
-    excerpt: "Best practices and patterns for designing distributed systems that can handle massive scale.",
-    date: "2024-01-10",
-    readTime: "12 min read", 
-    category: "Architecture"
-  },
-  {
-    id: 3,
-    title: "Modern JavaScript Frameworks Comparison",
-    excerpt: "A comprehensive analysis of React, Vue, and Angular in 2024 - which one should you choose?",
-    date: "2024-01-05",
-    readTime: "15 min read",
-    category: "Frontend"
-  },
-  {
-    id: 4,
-    title: "DevOps Best Practices for Startups",
-    excerpt: "Essential DevOps practices that every startup should implement from day one.",
-    date: "2023-12-28",
-    readTime: "10 min read",
-    category: "DevOps"
-  },
-  {
-    id: 5,
-    title: "Database Design Patterns for High Performance",
-    excerpt: "Advanced database optimization techniques for handling millions of concurrent users.",
-    date: "2023-12-20",
-    readTime: "14 min read",
-    category: "Database"
-  },
-  {
-    id: 6,
-    title: "Cybersecurity in the Age of Remote Work",
-    excerpt: "Essential security measures for protecting distributed teams and remote infrastructure.",
-    date: "2023-12-15",
-    readTime: "9 min read",
-    category: "Security"
-  }
-];
-
-const CATEGORIES = ["All", "AI & Technology", "Architecture", "Frontend", "DevOps", "Database", "Security"];
+type Article = Tables<'articles'>;
 
 const Blog = () => {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [categories, setCategories] = useState<string[]>(['All']);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredPosts = selectedCategory === "All" 
-    ? SAMPLE_POSTS 
-    : SAMPLE_POSTS.filter(post => post.category === selectedCategory);
+  useEffect(() => {
+    fetchArticlesAndCategories();
+  }, []);
+
+  const fetchArticlesAndCategories = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch articles
+      const { data: articlesData, error: articlesError } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('is_active', true)
+        .order('published_date', { ascending: false });
+
+      if (articlesError) throw articlesError;
+
+      // Fetch unique categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('articles')
+        .select('category')
+        .eq('is_active', true);
+
+      if (categoriesError) throw categoriesError;
+
+      const uniqueCategories = Array.from(
+        new Set(categoriesData?.map(item => item.category) || [])
+      ).sort();
+
+      setArticles(articlesData || []);
+      setCategories(['All', ...uniqueCategories]);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load articles');
+      console.error('Error fetching articles:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredArticles = selectedCategory === "All" 
+    ? articles 
+    : articles.filter(article => article.category === selectedCategory);
 
   return (
     <div className="min-h-screen bg-primary-dark">
@@ -84,80 +81,130 @@ const Blog = () => {
       {/* Category Filter */}
       <section className="pb-12">
         <div className="container-axis">
-          <div className="flex flex-wrap gap-4 justify-center">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-2 text-sm font-medium transition-all duration-300 ${
-                  selectedCategory === category
-                    ? 'bg-accent-primary text-white'
-                    : 'bg-card-dark text-text-muted hover:bg-secondary-dark hover:text-accent-hover'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex flex-wrap gap-4 justify-center">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-10 w-32" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4 justify-center">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-6 py-2 text-sm font-medium transition-all duration-300 ${
+                    selectedCategory === category
+                      ? 'bg-accent-primary text-white'
+                      : 'bg-card-dark text-text-muted hover:bg-secondary-dark hover:text-accent-hover'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Blog Posts Grid */}
       <section className="pb-20">
         <div className="container-axis">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredPosts.map((post) => (
-              <article
-                key={post.id}
-                className={`group cursor-pointer transition-all duration-300 hover:scale-105 ${
-                  post.featured ? 'md:col-span-2 lg:col-span-2' : ''
-                }`}
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-destructive body-text">{error}</p>
+              <button 
+                onClick={fetchArticlesAndCategories}
+                className="btn-primary mt-4"
               >
-                <div className="bg-card-dark p-6 h-full hover:shadow-2xl transition-shadow duration-300">
-                  {/* Category Badge */}
+                Try Again
+              </button>
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-card-dark p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="px-3 py-1 bg-accent-primary text-white text-xs font-medium">
-                      {post.category}
-                    </span>
-                    {post.featured && (
-                      <span className="px-3 py-1 bg-accent-hover text-primary-dark text-xs font-medium">
-                        FEATURED
-                      </span>
-                    )}
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-6 w-20" />
                   </div>
-
-                  {/* Content */}
-                  <div className="space-y-4">
-                    <h3 className={`${post.featured ? 'h2' : 'h3'} group-hover:text-accent-hover transition-colors`}>
-                      {post.title}
-                    </h3>
-                    
-                    <p className="body-text">
-                      {post.excerpt}
-                    </p>
-
-                    {/* Meta Information */}
-                    <div className="flex items-center gap-4 text-text-body text-sm">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={16} />
-                        <span>{new Date(post.date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock size={16} />
-                        <span>{post.readTime}</span>
-                      </div>
-                    </div>
-
-                    {/* Read More */}
-                    <div className="flex items-center gap-2 text-accent-primary group-hover:text-accent-hover transition-colors">
-                      <span className="font-medium">Read More</span>
-                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                    </div>
+                  <Skeleton className="h-8 w-full mb-4" />
+                  <Skeleton className="h-20 w-full mb-4" />
+                  <div className="flex items-center gap-4 mb-4">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
+                  <Skeleton className="h-6 w-32" />
                 </div>
-              </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : filteredArticles.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="body-text">No articles found in this category.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredArticles.map((article) => (
+                <Link
+                  key={article.id}
+                  to={`/blog/${article.slug}`}
+                  className={`group block transition-all duration-300 hover:scale-105 ${
+                    article.featured ? 'md:col-span-2 lg:col-span-2' : ''
+                  }`}
+                >
+                  <article className="bg-card-dark p-6 h-full hover:shadow-2xl transition-shadow duration-300">
+                    {/* Category Badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge variant="default" className="bg-accent-primary text-white text-xs">
+                        {article.category}
+                      </Badge>
+                      {article.featured && (
+                        <Badge variant="secondary" className="bg-accent-hover text-primary-dark text-xs">
+                          FEATURED
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="space-y-4">
+                      <h3 className={`${article.featured ? 'h2' : 'h3'} group-hover:text-accent-hover transition-colors`}>
+                        {article.title}
+                      </h3>
+                      
+                      <p className="body-text">
+                        {article.summary}
+                      </p>
+
+                      {/* Author */}
+                      <p className="small-text text-accent-primary">
+                        By {article.author}
+                      </p>
+
+                      {/* Meta Information */}
+                      <div className="flex items-center gap-4 text-text-body text-sm">
+                        <div className="flex items-center gap-1">
+                          <Calendar size={16} />
+                          <span>{new Date(article.published_date).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock size={16} />
+                          <span>{article.read_time} min read</span>
+                        </div>
+                      </div>
+
+                      {/* Read More */}
+                      <div className="flex items-center gap-2 text-accent-primary group-hover:text-accent-hover transition-colors">
+                        <span className="font-medium">Read More</span>
+                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
