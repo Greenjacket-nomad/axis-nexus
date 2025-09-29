@@ -8,7 +8,7 @@ export const APP_CONFIG = {
 } as const;
 
 export const N8N_CONFIG = {
-  baseUrl: "http://mkholm-n8n.duckdns.org:5679",
+  baseUrl: "https://mkholm-n8n.duckdns.org",
   endpoints: {
     contact: "/webhook/Form",
     subscribe: "/webhook/subscribe", 
