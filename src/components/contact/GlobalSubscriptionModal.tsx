@@ -7,14 +7,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, X, Mail, MessageCircle, ExternalLink, ArrowLeft, Calendar, Clock, Tag } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Check, Loader2, X, Mail, MessageCircle, ExternalLink, ArrowLeft, Calendar, Clock, Tag, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useSubscriptionModal } from '@/contexts/SubscriptionModalContext';
-import { useAIChat } from '@/contexts/AIChatContext';
-import { ChatTriggerButton } from '@/components/ai-chat/ChatTriggerButton';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { ArticleRecommendation } from '@/components/ai-chat/ArticleRecommendation';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Article = Tables<'articles'>;
@@ -26,18 +26,21 @@ export const GlobalSubscriptionModal: React.FC = () => {
     prefilledData, 
     articles, 
     currentArticle, 
+    questionResponse,
+    isLoadingResponse,
     closeModal, 
     setModalState, 
     setArticles, 
-    setCurrentArticle 
+    setCurrentArticle,
+    setQuestionResponse,
+    setIsLoadingResponse
   } = useSubscriptionModal();
-  
-  const { openChat } = useAIChat();
   
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [fullArticle, setFullArticle] = useState<Article | null>(null);
   const [articleLoading, setArticleLoading] = useState(false);
+  const [question, setQuestion] = useState('');
 
   const handleSubscribeYes = async () => {
     setIsLoading(true);
@@ -157,6 +160,35 @@ export const GlobalSubscriptionModal: React.FC = () => {
     setModalState(modalState === 'reading-article' ? 'articles-only' : 'initial');
   };
 
+  const handleAskQuestion = async () => {
+    if (!question.trim()) return;
+    
+    setIsLoadingResponse(true);
+    try {
+      const response = await apiClient.sendChatQuery(question);
+      
+      if (response.success && response.data) {
+        setQuestionResponse(response.data);
+        setModalState('question-response');
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to get AI response. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to send question:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to send question. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingResponse(false);
+    }
+  };
+
   const renderInitialState = () => (
     <div className="text-center space-y-6 p-6">
       <div className="w-16 h-16 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto">
@@ -255,20 +287,21 @@ export const GlobalSubscriptionModal: React.FC = () => {
             <p className="text-sm text-text-muted mb-3">
               Ask our AI assistant for personalized answers
             </p>
-            <ChatTriggerButton 
-              variant="inline"
+            <Button
+              onClick={() => setModalState('ask-question')}
+              variant="outline"
+              size="sm"
               className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
-            />
+            >
+              Ask a Question
+            </Button>
           </div>
         </div>
       </div>
 
       <div className="flex gap-3">
         <Button
-          onClick={() => {
-            closeModal();
-            openChat();
-          }}
+          onClick={() => setModalState('ask-question')}
           variant="outline"
           className="flex-1 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
         >
@@ -343,6 +376,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
               Ask our AI assistant for personalized answers
             </p>
             <Button
+              onClick={() => setModalState('ask-question')}
               variant="outline"
               size="sm"
               className="border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
@@ -502,6 +536,148 @@ export const GlobalSubscriptionModal: React.FC = () => {
     );
   };
 
+  const renderAskQuestionState = () => (
+    <div className="space-y-6 p-6">
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setModalState(articles.length > 0 ? 'success' : 'initial')}
+            className="text-text-muted hover:text-text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+        
+        <div className="w-16 h-16 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto">
+          <MessageCircle className="w-8 h-8 text-accent-primary" />
+        </div>
+        
+        <div>
+          <DialogTitle className="text-xl font-bold text-text-white mb-2">
+            Ask AI Assistant
+          </DialogTitle>
+          <DialogDescription className="text-text-muted">
+            Ask a question about {prefilledData.interest} and get personalized insights.
+          </DialogDescription>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-text-white">Your Question</label>
+          <Input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={`Ask anything about ${prefilledData.interest}...`}
+            className="bg-secondary-dark border-border-color text-text-white"
+            onKeyPress={(e) => e.key === 'Enter' && handleAskQuestion()}
+          />
+        </div>
+        
+        <Button
+          onClick={handleAskQuestion}
+          disabled={!question.trim() || isLoadingResponse}
+          className="w-full bg-accent-primary hover:bg-accent-hover text-text-white"
+        >
+          {isLoadingResponse ? (
+            <>
+              <Loader2 className="animate-spin w-4 h-4 mr-2" />
+              Getting AI Response...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4 mr-2" />
+              Ask Question
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderQuestionResponseState = () => {
+    if (!questionResponse) return null;
+
+    const getStatusMessage = () => {
+      switch (questionResponse.status) {
+        case 'not_relevant':
+          return "I specialize in technology topics. Feel free to ask me about programming, software development, AI, or other tech-related subjects!";
+        case 'no_results':
+          return "I couldn't find specific articles about this topic in our knowledge base. Try asking about popular tech topics like React, AI, Python, or web development.";
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <div className="space-y-6 p-6 max-h-96 overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setModalState('ask-question')}
+            className="text-text-muted hover:text-text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Ask Another
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-text-white mb-2">AI Response</h3>
+            {questionResponse.status === 'success' ? (
+              <div className="bg-secondary-dark p-4 border border-border-color rounded-md">
+                <p className="text-text-body leading-relaxed whitespace-pre-wrap">
+                  {questionResponse.answer}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-card-dark p-4 border border-accent-primary/20 rounded-md">
+                <p className="text-text-muted">
+                  {getStatusMessage()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {questionResponse.status === 'success' && questionResponse.articles?.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="font-semibold text-text-white">Recommended Articles</h4>
+              <div className="space-y-3">
+                {questionResponse.articles.map((article) => (
+                  <ArticleRecommendation key={article.article_id} article={article} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            onClick={() => {
+              setQuestion('');
+              setModalState('ask-question');
+            }}
+            variant="outline"
+            className="flex-1 border-border-color text-text-muted hover:text-text-white"
+          >
+            Ask Another Question
+          </Button>
+          <Button
+            onClick={closeModal}
+            className="flex-1 bg-accent-primary hover:bg-accent-hover text-text-white"
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
       <DialogContent className="sm:max-w-lg bg-card-dark border-accent-primary/20 p-0">
@@ -513,6 +689,8 @@ export const GlobalSubscriptionModal: React.FC = () => {
         {modalState === 'success' && renderSuccessState()}
         {modalState === 'articles-only' && renderArticlesOnlyState()}
         {modalState === 'reading-article' && renderArticleReader()}
+        {modalState === 'ask-question' && renderAskQuestionState()}
+        {modalState === 'question-response' && renderQuestionResponseState()}
       </DialogContent>
     </Dialog>
   );

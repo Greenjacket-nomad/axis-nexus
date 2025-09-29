@@ -8,7 +8,7 @@ interface SubscriptionData {
 
 interface SubscriptionModalContextType {
   isOpen: boolean;
-  modalState: 'initial' | 'success' | 'articles-only' | 'reading-article';
+  modalState: 'initial' | 'success' | 'articles-only' | 'reading-article' | 'ask-question' | 'question-response';
   prefilledData: SubscriptionData;
   articles: Array<{
     id: number;
@@ -22,11 +22,28 @@ interface SubscriptionModalContextType {
     summary: string;
     slug: string;
   } | null;
+  questionResponse: {
+    answer: string;
+    articles: Array<{
+      article_id: number;
+      title: string;
+      summary: string;
+      category: string;
+      author: string;
+      published_date: string;
+      article_url: string;
+      read_time_minutes: number;
+    }>;
+    status: 'success' | 'not_relevant' | 'no_results';
+  } | null;
+  isLoadingResponse: boolean;
   openModal: (data: SubscriptionData) => void;
   closeModal: () => void;
-  setModalState: (state: 'initial' | 'success' | 'articles-only' | 'reading-article') => void;
+  setModalState: (state: 'initial' | 'success' | 'articles-only' | 'reading-article' | 'ask-question' | 'question-response') => void;
   setArticles: (articles: Array<{id: number; title: string; summary: string; slug: string}>) => void;
   setCurrentArticle: (article: {id: number; title: string; summary: string; slug: string} | null) => void;
+  setQuestionResponse: (response: any) => void;
+  setIsLoadingResponse: (loading: boolean) => void;
 }
 
 const SubscriptionModalContext = createContext<SubscriptionModalContextType | undefined>(undefined);
@@ -37,7 +54,7 @@ interface SubscriptionModalProviderProps {
 
 export const SubscriptionModalProvider: React.FC<SubscriptionModalProviderProps> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [modalState, setModalState] = useState<'initial' | 'success' | 'articles-only' | 'reading-article'>('initial');
+  const [modalState, setModalState] = useState<'initial' | 'success' | 'articles-only' | 'reading-article' | 'ask-question' | 'question-response'>('initial');
   const [prefilledData, setPrefilledData] = useState<SubscriptionData>({
     name: '',
     email: '',
@@ -45,6 +62,8 @@ export const SubscriptionModalProvider: React.FC<SubscriptionModalProviderProps>
   });
   const [articles, setArticles] = useState<Array<{id: number; title: string; summary: string; slug: string}>>([]);
   const [currentArticle, setCurrentArticle] = useState<{id: number; title: string; summary: string; slug: string} | null>(null);
+  const [questionResponse, setQuestionResponse] = useState<any>(null);
+  const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
   const openModal = (data: SubscriptionData) => {
     setPrefilledData(data);
@@ -57,6 +76,8 @@ export const SubscriptionModalProvider: React.FC<SubscriptionModalProviderProps>
     setModalState('initial');
     setArticles([]);
     setCurrentArticle(null);
+    setQuestionResponse(null);
+    setIsLoadingResponse(false);
   };
 
   return (
@@ -66,11 +87,15 @@ export const SubscriptionModalProvider: React.FC<SubscriptionModalProviderProps>
       prefilledData,
       articles,
       currentArticle,
+      questionResponse,
+      isLoadingResponse,
       openModal,
       closeModal,
       setModalState,
       setArticles,
-      setCurrentArticle
+      setCurrentArticle,
+      setQuestionResponse,
+      setIsLoadingResponse
     }}>
       {children}
     </SubscriptionModalContext.Provider>
