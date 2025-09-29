@@ -699,7 +699,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="sm:max-w-2xl bg-card-dark border-accent-primary/20 p-0 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl bg-card-dark border-accent-primary/20 p-0 max-h-[95vh] h-[80vh] overflow-y-auto">
         <DialogHeader className="sr-only">
           <DialogTitle>Subscription Modal</DialogTitle>
         </DialogHeader>
