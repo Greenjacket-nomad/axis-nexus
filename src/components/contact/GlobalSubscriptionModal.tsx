@@ -158,7 +158,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
                 <Button
                   variant="link"
                   className="text-accent-primary hover:text-accent-hover p-0 h-auto font-normal"
-                  onClick={() => window.open(`/blog/${article.slug}`, '_blank')}
+                  onClick={() => window.open(`/blog/${article.slug.trim()}`, '_blank')}
                 >
                   Read article <ExternalLink className="w-3 h-3 ml-1" />
                 </Button>
@@ -228,7 +228,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
                 <Button
                   variant="link"
                   className="text-accent-primary hover:text-accent-hover p-0 h-auto font-normal"
-                  onClick={() => window.open(`/blog/${article.slug}`, '_blank')}
+                  onClick={() => window.open(`/blog/${article.slug.trim()}`, '_blank')}
                 >
                   Read article <ExternalLink className="w-3 h-3 ml-1" />
                 </Button>
