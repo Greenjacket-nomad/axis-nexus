@@ -332,24 +332,10 @@ export const GlobalSubscriptionModal: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <Button
-          onClick={() => setModalState('ask-question')}
-          variant="outline"
-          className="flex-1 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-text-white"
-        >
-          Ask AI Assistant
-        </Button>
-        <Button
-          onClick={() => setModalState('initial')}
-          variant="outline"
-          className="flex-1 border-border-color text-text-muted hover:text-text-white"
-        >
-          Back to Subscribe
-        </Button>
+      <div className="flex justify-center">
         <Button
           onClick={closeModal}
-          className="flex-1 bg-accent-primary hover:bg-accent-hover text-text-white"
+          className="bg-accent-primary hover:bg-accent-hover text-text-white px-8"
         >
           Close
         </Button>
@@ -713,7 +699,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="sm:max-w-lg bg-card-dark border-accent-primary/20 p-0">
+      <DialogContent className="sm:max-w-2xl bg-card-dark border-accent-primary/20 p-0 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="sr-only">
           <DialogTitle>Subscription Modal</DialogTitle>
         </DialogHeader>
