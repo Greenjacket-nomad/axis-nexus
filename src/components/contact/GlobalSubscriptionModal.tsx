@@ -632,7 +632,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
     };
 
     return (
-      <div className="space-y-6 p-6 max-h-96 overflow-y-auto">
+      <div className="flex flex-col h-full p-6 space-y-6">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -645,7 +645,7 @@ export const GlobalSubscriptionModal: React.FC = () => {
           </Button>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4">
           <div>
             <h3 className="text-lg font-semibold text-text-white mb-2">AI Response</h3>
             {questionResponse.status === 'success' ? (
